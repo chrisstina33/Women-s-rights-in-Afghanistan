@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petitions for women's rights in Afghanistan</title>
+</head>
+<body>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <style>
+      .zoom-container {
+      width: 300px;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .imgsrc{
+      border-radius: 15px; /* colțuri rotunjite */
+    transition: transform 0.3s ease; /* tranziție lină */
+    cursor: pointer; /* cursorul devine mână */
+
+    }
+    .imgsrc:hover{
+      transform: scale(1.05); /* mărire la hover */
+    }
+      body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f7f7f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+      }
+  
+      .header {
+        background: url('https://images.unsplash.com/photo-1607082350920-f53bc97fd0ed?ixlib=rb-4.0.3&auto=format&fit=crop&w=1650&q=80') no-repeat center center;
+        background-size: cover;
+        height: 200px;
+      }
+  
+      .container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+  
+      h1 {
+        color: #f84d64;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+  
+      p {
+        color: #ff0202;
+        font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      }
+  
+      #sign-button {
+        margin-top: 1rem;
+      }
+  
+      button {
+        padding: 10px 20px;
+        background-color: #fa2105;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      }
+  
+      button:hover {
+        background-color: olive;
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        color:aquamarine;
+      }
+    </style>
+  </head>
+  <body>
+  
+    <div class="header"></div>
+  
+    <div class="container">
+      <h1>Stand with Afghan Women</h1>
+      <img src="download.jpg" class="imgsrc">
+      <strong><em><p>Sign the petition to support access to education, safety, and basic human rights for women in Afghanistan.</p></em></strong>
+  
+      <div id="sign-button"></div>
+  
+      <div id="user-info" style="display:none; margin-top: 1rem;">
+        <p><strong>Welcome, <span id="user-name"></span>!</strong></p>
+        <button onclick="submitPetition()">Sign the Petition</button>
+      </div>
+    </div>
+  
+    <script>
+      const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
+};
+      function handleCredentialResponse(response) {
+        const data = jwt_decode(response.credential);
+        document.getElementById('user-name').textContent = data.name;
+        document.getElementById('sign-button').style.display = 'none';
+        document.getElementById('user-info').style.display = 'block';
+      }
+  
+      window.onload = function () {
+        google.accounts.id.initialize({
+          client_id: 'YOUR_GOOGLE_CLIENT_ID',
+          callback: handleCredentialResponse
+        });
+  
+        google.accounts.id.renderButton(
+          document.getElementById("sign-button"),
+          { theme: "outline", size: "large" } // customizations
+        );
+      }
+  
+      function submitPetition() {
+        alert("Thank you for signing the petition! ❤️");
+        // Here you'd normally send the info to your database
+      }
+    </script>
+<script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>  
+<button onclick="window.location.href='index.html'">Go back to principal page!</button>
+    
+</body>
+</html>
