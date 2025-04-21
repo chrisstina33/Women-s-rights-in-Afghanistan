@@ -11,6 +11,9 @@
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
 
   <style>
+    #thankYouMessage {
+    display: none;
+}
     /* Stilurile tale, neschimbate în esență */
     .zoom-container {
       width: 300px;
@@ -134,7 +137,7 @@
     .counter{
       font-family:"Times New Roman", Times, serif ;
       color:crimson;
-      
+
     }
   </style>
 </head>
@@ -426,6 +429,29 @@ function submitVote(selectedOption) {
       console.error('Error submitting vote:', error);
     });
   }
+}
+document.getElementById('signButton').addEventListener('click', function() {
+    alert("Thank you for signing the petition!");
+});
+document.getElementById('thankYouMessage').style.display = 'block';
+
+function signPetition() {
+    document.getElementById('loadingMessage').style.display = 'block'; // Arată mesajul de încărcare
+    // Cod pentru a trimite semnătura la server (de exemplu, Firebase)
+    
+    firebase.firestore().collection('petitions').add({
+        user: firebase.auth().currentUser.uid,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+    .then(() => {
+        document.getElementById('loadingMessage').style.display = 'none'; // Ascunde mesajul de încărcare
+        document.getElementById('thankYouMessage').style.display = 'block'; // Afișează mesajul de mulțumire
+    })
+    .catch((error) => {
+        console.error("Error signing petition: ", error);
+        document.getElementById('loadingMessage').style.display = 'none';
+        alert('Something went wrong, please try again.');
+    });
 }
 
   </script>
