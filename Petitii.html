@@ -7,9 +7,11 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
 
   <style>
+    /* Stilurile tale, neschimbate în esență */
     .zoom-container {
       width: 300px;
       overflow: hidden;
@@ -52,12 +54,12 @@
 
     h1 {
       color: #f84d64;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: "Times New Roman", Times, serif;
     }
 
     p {
       color: #ff0202;
-      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-family: "Times New Roman", Times, serif;
     }
 
     button {
@@ -68,16 +70,15 @@
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
-      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+      font-family: "Times New Roman", Times, serif;
     }
 
     button:hover {
       background-color: olive;
       color: aquamarine;
-      font-family: Georgia, 'Times New Roman', Times, serif;
+      font-family: "Times New Roman", Times, serif;
     }
 
-    /* Google button custom */
     .google-btn {
       display: inline-flex;
       align-items: center;
@@ -112,15 +113,44 @@
       display: none;
       margin-top: 1rem;
     }
+
+    .counter {
+      margin-top: 1rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .sign-button {
+      color: #f84d64;
+      background-color: cadetblue;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    #logout-btn {
+      background-color: darkred;
+      margin-top: 1rem;
+    }
+
+    .counter{
+      font-family:"Times New Roman", Times, serif ;
+      color:crimson;
+      
+    }
   </style>
 </head>
 <body>
+ 
+  
+ 
+  
+    
+  </div>
 
   <div class="header"></div>
 
   <div class="container">
     <h1>Stand with Afghan Women</h1>
-    <img src="download.jpg" class="imgsrc">
+    <img src="download.jpg" class="imgsrc" alt="Support Afghan Women">
     <strong><em><p>Sign the petition to support access to education, safety, and basic human rights for women in Afghanistan.</p></em></strong>
 
     <div id="sign-button">
@@ -133,11 +163,22 @@
     <div id="user-info">
       <p><strong>Welcome, <span id="user-name"></span>!</strong></p>
       <button onclick="submitPetition()">Sign the Petition</button>
+      <p id="thank-you" style="color:green; display:none;">✔️ Thank you for signing!</p>
+      <button id="logout-btn" onclick="signOut()">Log Out</button>
     </div>
+
+    <div class="counter">Total Signatures: <span id="signature-count">Loading...</span></div>
   </div>
 
   <button onclick="window.location.href='index.html'">Go back to principal page!</button>
 
+  <div class="container">
+    <h1>Statistics</h1>
+    <canvas id="votesChart" width="400" height="200"></canvas>
+
+
+  
+</div>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCO3P22JvH5a8xQzQiuaemEki-95SRcEk0",
@@ -150,13 +191,7 @@
     };
 
     firebase.initializeApp(firebaseConfig);
-
-    function handleCredentialResponse(response) {
-      const data = jwt_decode(response.credential);
-      document.getElementById('user-name').textContent = data.name;
-      document.getElementById('sign-button').style.display = 'none';
-      document.getElementById('user-info').style.display = 'block';
-    }
+    const db = firebase.firestore();
 
     function signIn() {
       google.accounts.id.initialize({
@@ -164,33 +199,235 @@
         callback: handleCredentialResponse
       });
 
-      google.accounts.id.prompt(); // deschide popup-ul de autentificare
-    }
-
-    function submitPetition() {
-      alert("Thank you for signing the petition! ❤️");
-      // Aici ai putea salva în Firebase sau altă bază de date
+      google.accounts.id.prompt();
     }
 
     function handleCredentialResponse(response) {
-  const data = jwt_decode(response.credential);
-  document.getElementById('user-name').textContent = data.name;
+      const data = jwt_decode(response.credential);
+      document.getElementById('user-name').textContent = data.name;
 
-  // Conectează utilizatorul la Firebase Auth folosind credential-ul de la Google
-  const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
-  firebase.auth().signInWithCredential(credential)
-    .then((userCredential) => {
-      const user = userCredential.user;
-      console.log('User logged in:', user);
-      document.getElementById('sign-button').style.display = 'none';
-      document.getElementById('user-info').style.display = 'block';
-    })
-    .catch((error) => {
-      console.error('Error logging in:', error);
-      alert('There was an issue with the login, please try again.');
+      const credential = firebase.auth.GoogleAuthProvider.credential(response.credential);
+      firebase.auth().signInWithCredential(credential)
+        .then((userCredential) => {
+          document.getElementById('sign-button').style.display = 'none';
+          document.getElementById('user-info').style.display = 'block';
+        })
+        .catch((error) => {
+          console.error('Login failed:', error);
+          alert('Login error. Try again!');
+        });
+    }
+
+    function submitPetition() {
+      const user = firebase.auth().currentUser;
+      if (user) {
+        db.collection('signatures').doc(user.uid).set({
+          name: user.displayName,
+          email: user.email,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(() => {
+          document.getElementById('thank-you').style.display = 'block';
+          updateSignatureCount();
+        }).catch(error => {
+          console.error('Error saving signature:', error);
+        });
+      }
+    }
+
+    function signOut() {
+      firebase.auth().signOut().then(() => {
+        location.reload();
+      });
+    }
+
+    function updateSignatureCount() {
+      db.collection('signatures').get().then(snapshot => {
+        document.getElementById('signature-count').textContent = snapshot.size;
+      });
+    }
+
+    // Update counter on load
+    updateSignatureCount();
+
+    function updateGenderChart() {
+  db.collection('signatures').get().then(snapshot => {
+    let counts = { male: 0, female: 0, other: 0 };
+
+    snapshot.forEach(doc => {
+      const gender = doc.data().gender || 'other';
+      counts[gender] = (counts[gender] || 0) + 1;
     });
-}
-  </script>
 
+    const ctx = document.getElementById('genderChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Female', 'Male', 'Other'],
+        datasets: [{
+          data: [counts.female, counts.male, counts.other],
+          backgroundColor: ['#f84d64', '#36a2eb', '#ffce56'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          title: {
+            display: true,
+            text: 'Gender Distribution of Petition Signers'
+          }
+        }
+      }
+    });
+  });
+}
+
+// Apel după ce se semnează sau la încărcare
+updateGenderChart();
+
+function updateGenderChart() {
+  db.collection('signatures').get().then(snapshot => {
+    let counts = { male: 0, female: 0, other: 0 };
+
+    snapshot.forEach(doc => {
+      const gender = doc.data().gender || 'other';
+      counts[gender] = (counts[gender] || 0) + 1;
+    });
+
+    const ctx = document.getElementById('genderChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Female', 'Male', 'Other'],
+        datasets: [{
+          data: [counts.female, counts.male, counts.other],
+          backgroundColor: ['#f84d64', '#36a2eb', '#ffce56'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          },
+          title: {
+            display: true,
+            text: 'Gender Distribution of Petition Signers'
+          }
+        }
+      }
+    });
+  });
+}
+function updateMap() {
+  const map = L.map('map').setView([44.43, 26.10], 6); // Locație inițială (București)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  db.collection('signatures').get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const location = data.location.split(", ");
+      const lat = parseFloat(location[0]);
+      const lng = parseFloat(location[1]);
+
+      L.marker([lat, lng]).addTo(map)
+        .bindPopup(`<b>${data.name}</b><br>${data.email}<br>${data.gender}`)
+        .openPopup();
+    });
+  });
+}
+
+// Apelăm funcția pentru a încărca harta cu semnături
+updateMap();
+
+let votesChart;
+
+function updateVotesChart() {
+  db.collection('votes').get().then(snapshot => {
+    let voteCounts = { optionA: 0, optionB: 0, optionC: 0 };
+
+    snapshot.forEach(doc => {
+      const vote = doc.data().vote; // Aici presupunem că "vote" conține opțiunea aleasă
+      if (vote === 'optionA') voteCounts.optionA++;
+      if (vote === 'optionB') voteCounts.optionB++;
+      if (vote === 'optionC') voteCounts.optionC++;
+    });
+
+    // Dacă graficul nu există, îl creăm
+    if (!votesChart) {
+      const ctx = document.getElementById('votesChart').getContext('2d');
+      votesChart = new Chart(ctx, {
+        type: 'bar', // Tipul graficului
+        data: {
+          labels: ['Option A', 'Option B', 'Option C'], // Etichetele opțiunilor
+          datasets: [{
+            label: 'Number of Votes', // Eticheta axei Y
+            data: [voteCounts.optionA, voteCounts.optionB, voteCounts.optionC], // Numărul de voturi pentru fiecare opțiune
+            backgroundColor: ['#ff5733', '#33ff57', '#3357ff'], // Culoare pentru fiecare bară
+            borderColor: '#fff', // Culoarea marginii barei
+            borderWidth: 2 // Lățimea marginii
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true, // Asigură-te că axa Y începe de la 0
+              ticks: {
+                stepSize: 1 // Setează pașii de creștere pe axa Y
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top'
+            },
+            title: {
+              display: true,
+              text: 'Voting Distribution'
+            }
+          }
+        }
+      });
+    } else {
+      // Actualizează datele graficei existente
+      votesChart.data.datasets[0].data = [voteCounts.optionA, voteCounts.optionB, voteCounts.optionC];
+      votesChart.update(); // Actualizează graficul
+    }
+  }).catch(error => {
+    console.error('Error fetching votes:', error);
+  });
+}
+
+// Apelăm funcția pentru a actualiza graficul la fiecare modificare de vot
+db.collection('votes').onSnapshot(snapshot => {
+  updateVotesChart();
+});
+
+function submitVote(selectedOption) {
+  const user = firebase.auth().currentUser;
+
+  if (user) {
+    db.collection('votes').doc(user.uid).set({
+      vote: selectedOption,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      updateVotesChart(); // Actualizează graficul când este adăugat un vot
+    }).catch(error => {
+      console.error('Error submitting vote:', error);
+    });
+  }
+}
+
+  </script>
 </body>
 </html>
